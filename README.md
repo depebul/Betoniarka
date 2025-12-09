@@ -21,7 +21,7 @@ Zakładane funkcjonalności:
 
 ## 2. Model domenowy (stan na M1)
 
-W projekcie zaimplementowano kompletny model obiektowy i bazodanowy dla kluczowych pojęć biblioteki. Wszystkie encje są mapowane przy użyciu JPA (`jakarta.persistence`) z walidacją (`jakarta.validation`).
+W projekcie zaimplementowano kompletny model obiektowy i bazodanowy dla kluczowych pojęć biblioteki. Wszystkie encje są mapowane przy użyciu JPA.
 
 ### 2.1 Użytkownik systemu – `AppUser`
 
@@ -38,9 +38,9 @@ Najważniejsze pola:
 - `role` – rola użytkownika (enum `AppRole`).
 
 Relacje:
-- `borrowedBooks` – lista wypożyczonych książek (`BorrowedBook`),
-- `queuedBooks` – wpisy użytkownika w kolejkach do książek (`QueueEntry`),
-- `reviews` – recenzje wystawione przez użytkownika (`Review`).
+- `borrowedBooks` – lista wypożyczonych książek (`BorrowedBook`) - jeden do wielu,
+- `queuedBooks` – wpisy użytkownika w kolejkach do książek (`QueueEntry`) - jeden do wielu,
+- `reviews` – recenzje wystawione przez użytkownika (`Review`) - jeden do wielu.
 
 ### 2.2 Role użytkowników – `AppRole`
 
@@ -65,13 +65,13 @@ Najważniejsze pola:
 - `count` – liczba dostępnych egzemplarzy (wymagana).
 
 Relacje:
-- `categories` – lista kategorii (`Category`) – relacja wiele–do–wielu,
-- `author` – jeden autor (`Author`),
-- `borrowedBy` – wypożyczenia tej książki (`BorrowedBook`),
-- `queue` – kolejka do tej książki (`QueueEntry`),
-- `reviews` – recenzje książki (`Review`).
+- `categories` – lista kategorii (`Category`) – wiele do wielu,
+- `author` – jeden autor (`Author`) - wiele do jednego,
+- `borrowedBy` – wypożyczenia tej książki (`BorrowedBook`) - jeden do wielu,
+- `queue` – kolejka do tej książki (`QueueEntry`) - jeden do wielu,
+- `reviews` – recenzje książki (`Review`) - jeden do wielu.
 
-Model już spełnia wymagania:
+Model spełnia wymagania:
 - książka może należeć do wielu kategorii,
 - na podstawie `count` i powiązań `BorrowedBook` można ograniczać liczbę aktywnych wypożyczeń.
 
@@ -86,7 +86,7 @@ Pola:
 - `name` – unikalna nazwa kategorii (wymagana).
 
 Relacje:
-- `books` – lista książek w tej kategorii (strona odwrotna relacji wiele–do–wielu).
+- `books` – lista książek w tej kategorii - wiele do wielu.
 
 ### 2.5 Autor – `Author`
 
@@ -99,7 +99,7 @@ Pola:
 - `name` – nazwa/imie i nazwisko autora (wymagane).
 
 Relacje:
-- `books` – lista książek napisanych przez danego autora.
+- `books` – lista książek napisanych przez danego autora - jeden do wielu.
 
 ### 2.6 Wypożyczona książka – `BorrowedBook`
 
@@ -110,11 +110,11 @@ Reprezentuje pojedyncze wypożyczenie egzemplarza książki przez użytkownika.
 Pola:
 - `id`,
 - `timestamp` – czas wypożyczenia (wymagany),
-- `borrowedTime` – czas trwania wypożyczenia (`Duration`, wymagane).
+- `borrowedTime` – czas trwania wypożyczenia (wymagane).
 
 Relacje:
-- `appUser` – użytkownik, który wypożyczył książkę,
-- `book` – wypożyczona książka.
+- `appUser` – użytkownik, który wypożyczył książkę - wiele do jednego,
+- `book` – wypożyczona książka - wiele do jednego.
 
 Na bazie tej encji możliwe jest:
 - liczenie aktualnej liczby wypożyczeń użytkownika (limit x książek),
@@ -131,10 +131,8 @@ Pola:
 - `timestamp` – moment zapisania się do kolejki (wymagany).
 
 Relacje:
-- `appUser` – użytkownik oczekujący w kolejce,
-- `book` – książka, na którą czeka.
-
-Stworzony model danych w pełni odzwierciedla wymaganie: *kolejka chcących wypożyczyć książkę*.
+- `appUser` – użytkownik oczekujący w kolejce - wiele do jednego,
+- `book` – książka, na którą czeka - wiele do jednego.
 
 ### 2.8 Recenzja – `Review`
 
@@ -148,10 +146,8 @@ Pola:
 - `comment` – opcjonalny komentarz.
 
 Relacje:
-- `appUser` – użytkownik wystawiający recenzję,
-- `book` – oceniana książka.
-
-Encja jest fundamentem dla funkcjonalności *polecania* i *statystyk* (np. średnie oceny).
+- `appUser` – użytkownik wystawiający recenzję - wiele do jednego,
+- `book` – oceniana książka - wiele do jednego.
 
 ---
 
@@ -247,14 +243,12 @@ Plik: `src/main/java/com/betoniarka/biblioteka/security/SecurityConfig.java`
 
 Najważniejsze elementy:
 - Bean `PasswordEncoder` (`BCryptPasswordEncoder`) – do bezpiecznego przechowywania haseł,
-- Konfiguracja filtra bezpieczeństwa:
-  - wyłączone CSRF (`csrf.disable()`),
-  - endpointy publiczne:
+- Konfiguracja endpointów:
+  - endpointy publiczne (nie wymagające uwierzytelnienia):
     - `/auth/register`,
     - `/auth/login`,
     - `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`,
   - pozostałe żądania wymagają uwierzytelnienia,
-- użycie `httpBasic()` – aktualnie proste uwierzytelnianie HTTP Basic.
 
 ### 4.3 Szczegóły użytkownika w Security – `AppUserDetails` i `AppUserDetailsService`
 
@@ -292,16 +286,3 @@ Zgodnie z założeniami M1:
   - publiczne endpointy rejestracji/logowania,
   - ochrona pozostałych zasobów,
   - role użytkowników mapowane na uprawnienia (możliwość dalszego doprecyzowania reguł dostępu).
-
----
-
-## 6. Technologie
-
-- Java + Spring Boot – aplikacja serwerowa (`BibliotekaApplication` jako punkt wejścia).
-- Spring Data JPA – mapowanie encji i dostęp do bazy danych.
-- Spring Security – autentykacja i autoryzacja.
-- Gradle – system budowania (`build.gradle`).
-- REST API – interfejs komunikacji z klientem.
-- `jakarta.validation` – walidacja danych wejściowych.
-- Relacyjna baza danych – konfiguracja w `src/main/resources/application.properties`.
-
