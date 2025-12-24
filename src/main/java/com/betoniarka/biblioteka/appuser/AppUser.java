@@ -1,6 +1,5 @@
 package com.betoniarka.biblioteka.appuser;
 
-import com.betoniarka.biblioteka.book.Book;
 import com.betoniarka.biblioteka.borrowedbook.BorrowedBook;
 import com.betoniarka.biblioteka.queueentry.QueueEntry;
 import com.betoniarka.biblioteka.review.Review;
@@ -28,11 +27,6 @@ public class AppUser {
     @NotNull(message = "username is required")
     private String username;
 
-    @Setter
-    @Column
-    @NotNull(message = "password is required")
-    private String password;
-
     @Getter
     @Setter
     @Column
@@ -52,8 +46,14 @@ public class AppUser {
     @Getter
     @Setter
     @Column
+    @NotNull(message = "password is required")
+    private String password;
+
+    @Getter
+    @Setter
+    @Column
     @Enumerated(EnumType.STRING)
-    private AppRole role;
+    private AppUserRole role;
 
     @OneToMany(mappedBy = "appUser")
     private List<BorrowedBook> borrowedBooks = new ArrayList<>();
@@ -65,14 +65,6 @@ public class AppUser {
     private List<Review> reviews = new ArrayList<>();
 
     public AppUser() {}
-
-    public AppUser(AppRole role) {
-        this.role = role;
-    }
-
-    public String getPassword() {
-        return password;
-    }
 
     @Override
     public boolean equals(Object o) {
