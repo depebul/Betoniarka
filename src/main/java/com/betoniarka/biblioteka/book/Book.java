@@ -1,11 +1,13 @@
 package com.betoniarka.biblioteka.book;
 
 import com.betoniarka.biblioteka.author.Author;
-import com.betoniarka.biblioteka.borrowedbook.BorrowedBook;
+import com.betoniarka.biblioteka.borrow.Borrow;
 import com.betoniarka.biblioteka.category.Category;
+import com.betoniarka.biblioteka.exceptions.ResourceConflictException;
 import com.betoniarka.biblioteka.queueentry.QueueEntry;
 import com.betoniarka.biblioteka.review.Review;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -30,7 +32,7 @@ public class Book {
     @Getter
     @Setter
     @Column
-    @NotNull(message = "count is required")
+    @Min(0)
     private int count;
 
     @Getter
@@ -48,18 +50,48 @@ public class Book {
     private Author author;
 
     @Getter
-    @OneToMany(mappedBy = "book")
-    private List<BorrowedBook> borrowedBy = new ArrayList<>();
+    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL)
+    private List<Borrow> borrowedBy = new ArrayList<>();
 
     @Getter
-    @OneToMany(mappedBy = "book")
+    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL)
     private List<QueueEntry> queue = new ArrayList<>();
 
     @Getter
-    @OneToMany(mappedBy = "book")
+    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL)
     private List<Review> reviews = new ArrayList<>();
 
     public Book() {}
+
+    public void addCategory(Category category) {
+        if (this.categories.contains(category)) {
+            return;
+        }
+        this.categories.add(category);
+        category.getBooks().add(this);
+    }
+
+    public void removeCategory(Category category) {
+        this.categories.remove(category);
+        category.getBooks().remove(this);
+    }
+
+    public void setCategories(List<Category> newCategories) {
+        var currentCategories = new ArrayList<>(this.categories);
+        currentCategories.forEach(this::removeCategory);
+        newCategories.forEach(this::addCategory);
+    }
+
+    public void decrementCount() {
+        if (this.count <= 0) {
+            throw new ResourceConflictException("Book '%s' is out of stock".formatted(this.title));
+        }
+        this.count--;
+    }
+
+    public void incrementCount() {
+        this.count++;
+    }
 
     @Override
     public boolean equals(Object o) {
